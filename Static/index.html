@@ -1,1 +1,132 @@
 
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Files - WebDAV Pro</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Roboto,Arial,sans-serif}
+html,body{height:100%;height:100vh;height:100dvh;width:100%;overflow:hidden}
+body{display:flex;flex-direction:column;background:#fff}
+.top{height:56px;min-height:56px;flex-shrink:0;padding:0 12px;display:flex;gap:8px;align-items:center;border-bottom:1px solid #dadce0;background:#fff;z-index:20}
+.hamburger{width:40px;height:40px;border-radius:50%;border:none;background:transparent;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.hamburger:hover{background:#f1f3f4}
+.top input,.top select{padding:10px 14px;border-radius:24px;border:none;background:#f1f3f4;outline:none;font-size:14px;min-height:38px}
+.main{flex:1;display:flex;overflow:hidden;min-height:0;min-width:0;background:#fff;height:calc(100vh - 56px);height:calc(100dvh - 56px)}
+.sidebar{width:260px;min-width:260px;padding:12px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;transition:0.28s;border-right:1px solid #dadce0;background:#fff;z-index:15;flex-shrink:0}
+.sidebar.hidden{transform:translateX(-100%);width:0;min-width:0;padding:0;border:none;margin-left:-260px;overflow:hidden}
+.sidebar button{padding:10px 12px;border-radius:24px;border:none;background:transparent;text-align:left;display:flex;gap:10px;align-items:center;font-size:14px;color:#5f6368;cursor:pointer;width:100%;font-weight:500}
+.sidebar button.active{background:#e8f0fe;color:#1967d2;font-weight:700}
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;min-width:0;background:#fff}
+.pathBar{display:flex;align-items:center;gap:6px;padding:10px 16px;border-bottom:1px solid #f1f3f4;font-size:13px;flex-wrap:wrap;background:#fff;flex-shrink:0}
+.pathBar .crumb{padding:6px 12px;border-radius:16px;background:#f1f3f4;cursor:pointer;font-weight:500;flex-shrink:0}
+.toolbar{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid #f1f3f4;align-items:center;flex-wrap:wrap;background:#fff;flex-shrink:0}
+.grid{flex:1;overflow:auto;min-height:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:12px;align-content:start;background:#fff;width:100%}
+.item{border:1px solid #e8eaed;border-radius:12px;padding:12px;cursor:pointer;background:#fff;height:fit-content}
+.item:hover{box-shadow:0 2px 8px rgba(0,0,0,0.12)}
+.item.selected{border-color:#1a73e8;background:#e8f0fe}
+.iconWrap{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;margin-bottom:8px}
+.badge{padding:5px 10px;border-radius:16px;font-size:11px;background:#e8f0fe;color:#1967d2;font-weight:700;flex-shrink:0}
+.btn{padding:8px 14px;border-radius:20px;border:none;font-weight:600;cursor:pointer;font-size:12px;background:#e8f0fe;color:#1967d2}
+.btn-primary{background:#1a73e8;color:#fff}
+.list{flex:1;overflow:auto;min-height:0;display:flex;flex-direction:column;background:#fff;width:100%}
+.list .row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f3f4;cursor:pointer;flex-shrink:0}
+.rightPanel{width:340px;min-width:340px;padding:0;display:flex;flex-direction:column;overflow:hidden;transition:0.28s;border-left:1px solid #dadce0;background:#fff;z-index:15;flex-shrink:0}
+.rightPanel.hidden{transform:translateX(100%);width:0;min-width:0;border:none;margin-right:-340px;overflow:hidden}
+.filePreview{width:100%;height:200px;min-height:200px;border-radius:12px;border:1px solid #e8eaed;background:#f8f9fa;display:flex;align-items:center;justify-content:center;margin-bottom:12px;overflow:hidden;flex-shrink:0}
+.propRow{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f3f4;font-size:13px;gap:10px}
+#ctx{position:fixed;border-radius:12px;padding:6px;display:none;z-index:100;min-width:240px;background:#fff;box-shadow:0 8px 24px rgba(0,0,0,0.2);border:1px solid #dadce0}
+#ctx button{display:flex;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-size:13px}
+#ctx button:hover{background:#f1f3f4}
+#viewer{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;z-index:200;align-items:center;justify-content:center;padding:12px}
+#viewer .box{background:#fff;border-radius:16px;width:92%;max-width:1000px;max-height:92%;display:flex;flex-direction:column;overflow:hidden}
+#viewer .head{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e8eaed;font-weight:700;background:#f8f9fa;flex-shrink:0}
+#viewer .body{flex:1;overflow:auto;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;min-height:0}
+#viewer .body.textMode{background:#0f172a;align-items:flex-start;justify-content:flex-start;padding:16px}
+pre{white-space:pre-wrap;word-break:break-word;font-family:monospace;font-size:13px;line-height:1.5;margin:0}
+.i-folder{background:#fdd663;color:#7a4a00}.i-image{background:#e8f0fe;color:#1967d2}.i-video{background:#fce8e6;color:#c5221f}.i-audio{background:#e6f4ea;color:#137333}.i-pdf{background:#fce8e6;color:#a50e0e}.i-doc{background:#e8f0fe;color:#1e3a8a}.i-sheet{background:#e6f4ea;color:#0d652d}.i-ppt{background:#fce8e6;color:#c5221f}.i-zip{background:#fef7e0;color:#7a4a00}.i-code{background:#f3e8fd;color:#681da8}.i-apk{background:#e6f4ea;color:#0d652d}.i-exe{background:#e8f0fe;color:#5f6368}.i-file{background:#f1f3f4;color:#5f6368}.i-txt{background:#f1f3f4;color:#202124}.i-iso{background:#fce8e6;color:#5f6368}
+#tsIcon{display:none;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:#e6f4ea;border:1px solid #137333;color:#137333;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;animation:fadeIn 0.3s}
+#tsIcon .dot{width:8px;height:8px;background:#137333;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite;flex-shrink:0}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.4}100%{opacity:1}}
+@keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+body.dark{background:#000;color:#e8eaed}.dark .top,.dark .main,.dark .content,.dark .grid,.dark .list,.dark .pathBar,.dark .toolbar{background:#202124;border-color:#3c4043}.dark .top input,.dark .top select{background:#303134;color:#e8eaed}.dark .sidebar,.dark .rightPanel{background:#202124;border-color:#3c4043}.dark .item{background:#2d2e30;border-color:#3c4043;color:#e8eaed}
+body.nas_admin{background:#0f172a;color:#e2e8f0}.nas_admin .top,.nas_admin .main,.nas_admin .content,.nas_admin .grid,.nas_admin .list,.nas_admin .pathBar,.nas_admin .toolbar{background:#0b1220;border-color:#1e293b}.nas_admin .top input,.nas_admin .top select{background:#1e293b;color:#fff;border:1px solid #334155}.nas_admin .sidebar,.nas_admin .rightPanel{background:#0f172a;border-color:#1e293b}.nas_admin .item{background:#1e293b;border-color:#23324d;color:#e2e8f0}
+body.minimal .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0;padding:0}body.minimal .item{border-radius:0;margin:-1px 0 0 -1px}
+body.openlist .grid{grid-template-columns:1fr;gap:0;padding:0}body.openlist .item{border-radius:0;border:none;border-bottom:1px solid #f1f3f4;display:flex;align-items:center;gap:12px;padding:10px 16px}
+@media(max-width:768px){.sidebar{position:absolute;left:0;top:0;bottom:0;box-shadow:8px 0 24px rgba(0,0,0,0.15);margin-left:0 !important}.rightPanel{position:absolute;right:0;top:0;bottom:0;width:85%;min-width:85%;box-shadow:-8px 0 24px rgba(0,0,0,0.15);margin-right:0 !important}.grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}}
+</style>
+</head>
+<body>
+<div class="top">
+<button class="hamburger" onclick="toggleLeft()">≡</button>
+<div style="font-weight:900;display:flex;align-items:center;gap:6px;flex-shrink:0"><span style="width:28px;height:28px;background:#1a73e8;color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center">F</span><span id="uiTitle">Files</span></div>
+<input id="search" placeholder="Search - 80+ types" style="flex:1;max-width:400px;min-width:0" onkeyup="filterFiles(this.value)">
+<select id="srcType" onchange="switchSource(this.value)" style="flex-shrink:0"><option value="local">Mobile</option><option value="router_ftp">Router</option><option value="client">Client</option></select>
+<div id="tsIcon" onclick="copyTailscale()"><span class="dot"></span><span id="tsText">Tailscale</span></div>
+<button class="hamburger" onclick="toggleRight()">☰</button>
+</div>
+
+<div class="main">
+<div class="sidebar" id="leftPanel">
+<button id="btn-mobile" class="active" onclick="switchSource('local')">📁 My Files</button>
+<button id="btn-ftp" onclick="switchSource('router_ftp')">🗄️ Router FTP</button>
+<div style="height:1px;background:#e8eaed;margin:8px 0;flex-shrink:0"></div>
+<button onclick="goUp()">⬆️ Up</button>
+<button onclick="newFolder()">📁+ New Folder</button>
+<button onclick="zipSelected()">🗜️ Zip Selected</button>
+<label style="display:flex;gap:8px;padding:10px 12px;background:#f1f3f4;border-radius:20px;cursor:pointer;font-size:13px;margin-top:4px;flex-shrink:0"><input type="file" id="fileInput" hidden multiple onchange="uploadFiles(this.files)">⬆️ Upload</label>
+<button onclick="toggleView()" id="viewBtn">List View</button>
+<button onclick="ls()">↻ Refresh</button>
+<button onclick="location.href='/config'" style="margin-top:12px;background:#f1f3f4;border-radius:20px">⚙️ UI / Config</button>
+<div style="margin-top:12px;flex-shrink:0"><input id="clientUrl" placeholder="Client IP" style="width:100%;margin-bottom:6px;padding:8px;border-radius:8px;border:1px solid #dadce0;font-size:12px"/><select id="clientProto" style="width:100%;margin-bottom:6px;padding:8px;border-radius:8px"><option value="webdav">WebDAV</option><option value="ftp">FTP</option><option value="sftp">SFTP</option><option value="smb">SMB</option></select><button class="btn btn-primary" style="width:100%" onclick="connectClient()">Connect</button></div>
+</div>
+<div class="content" id="contentArea">
+<div class="pathBar" id="pathBar"></div>
+<div class="toolbar"><span id="status" class="badge">0 items</span><button class="btn" onclick="selectAll()">Select All</button><button class="btn" onclick="clearSel()">Clear</button><span style="margin-left:auto;font-size:11px;color:#5f6368" id="storageInfo"></span></div>
+<div id="fileGrid" class="grid"></div>
+<div id="fileList" class="list" style="display:none"></div>
+</div>
+<div class="rightPanel hidden" id="rightPanel">
+<div style="height:48px;min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #e8eaed;font-weight:700;flex-shrink:0"><span>Details & Preview</span><button class="hamburger" onclick="toggleRight()">✕</button></div>
+<div style="padding:12px;overflow:auto;flex:1;min-height:0">
+<div class="filePreview" id="filePreview"><span style="color:#5f6368;font-size:13px;text-align:center">Select file to preview</span></div>
+<div id="fileDetails" style="font-size:13px;color:#5f6368">Select a file</div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btn btn-primary" onclick="openItem()">Open in Browser</button>
+<button class="btn" onclick="doDownload()">Download</button>
+<button class="btn" onclick="doStream()">Stream</button>
+<button class="btn" onclick="doViewText()">View Text</button>
+</div>
+</div>
+</div>
+</div>
+<div id="ctx"><button onclick="openItem()">▶ Open in Browser</button><button onclick="doStream()">🎬 Play / View</button><button onclick="doViewText()">📄 View Text</button><button onclick="doDownload()">⬇ Download</button><button onclick="doRename()">✏ Rename</button><button onclick="doZipOne()">🗜️ Zip</button><button onclick="doUnzip()">📦 Unzip</button><button onclick="toggleRight()">ℹ Details</button><button onclick="doDelete()" style="color:#d93025">🗑 Delete</button></div>
+<div id="viewer" onclick="if(event.target.id==='viewer') closeViewer()"><div class="box"><div class="head"><span id="viewerName">Preview</span><div style="display:flex;gap:8px"><button class="btn" onclick="doDownload()">Download</button><button class="btn" onclick="closeViewer()">✕ Close</button></div></div><div class="body" id="viewerBody"></div></div></div>
+<script>
+let curLocal="/storage/emulated/0",curRemote="router_ftp:/",curSource="local",clientRemoteName=null,view="grid",cfg={},ctxTarget=null,selected=new Set(),currentFiles=[],filteredFiles=[],tailscaleInfo=null;
+function toggleLeft(){document.getElementById('leftPanel').classList.toggle('hidden');}
+function toggleRight(){document.getElementById('rightPanel').classList.toggle('hidden');}
+async function loadCfg(){
+ const r=await fetch('/api/config');cfg=await r.json();
+ if(cfg.mobile_path)curLocal=cfg.mobile_path;
+ let ui=cfg.ui_type||'google_drive';let theme=cfg.theme||'light';
+ document.body.className=ui+' '+(theme==='dark'?'dark':theme==='synology'?'nas_admin':theme==='windows'?'windows11':'');
+ if(ui==='nas_admin')document.body.classList.add('nas_admin');
+ document.getElementById('uiTitle').innerText=ui==='google_drive'?'Drive':ui==='openlist'?'OpenList':ui==='nas_admin'?'NAS':ui==='mobile_app'?'Files':ui==='windows11'?'Explorer':'Files';
+ if(cfg.server_mode==='router_ftp'){curSource='router_ftp';document.getElementById('srcType').value='router_ftp';}
+ updateButtons();ls();checkTailscale();
+ // Auto refresh tailscale status every 10s
+ setInterval(checkTailscale,10000);
+}
+function updateButtons(){document.getElementById('btn-mobile').classList.toggle('active',curSource==='local');document.getElementById('btn-ftp').classList.toggle('active',curSource==='router_ftp');document.getElementById('srcType').value=curSource;}
+function switchSource(s){curSource=s;updateButtons();if(s==='local')curLocal=cfg.mobile_path||"/storage/emulated/0";if(s==='router_ftp')curRemote="router_ftp:/";if(s==='client'&&clientRemoteName)curRemote=clientRemoteName+":/";if(window.innerWidth<768)document.getElementById('leftPanel').classList.add('hidden');ls();}
+function toggleView(){view=view==='grid'?'list':'grid';document.getElementById('fileGrid').style.display=view==='grid'?'':'none';document.getElementById('fileList').style.display=view==='list'?'':'none';document.getElementById('viewBtn').innerText=view==='grid'?'List View':'Grid View';}
+function selectAll(){currentFiles.forEach(f=>selected.add(f.Name));render(filteredFiles.length?filteredFiles:currentFiles);}
+function clearSel(){selected.clear();render(filteredFiles.length?filteredFiles:currentFiles);}
+function buildBreadcrumbs(){const bar=document.getElementById('pathBar');bar.innerHTML='';let pathStr=curSource==='local'?curLocal:curRemote;document.getElementById('storageInfo').innerText=pathStr;let parts=pathStr.split('/').filter(p=>p);let home=document.createElement('span');home.className='crumb';home.innerText=curSource==='local'?'My Files':'Root';home.onclick=()=>{if(curSource==='local')curLocal='/storage/emulated/0';else curRemote='router_ftp:/';ls();};bar.appendChild(home);for(let i=(curSource==='local'?0:1);i<parts.length;i++){let sep=document.createElement('span');sep.innerText='›';sep.style.color='#5f6368';bar.appendChild(sep);let crumb=document.createElement('span');crumb.className='crumb';crumb.innerText=parts[i];let idx=i;crumb.onclick=()=>{if(curSource==='local'){curLocal='/'+parts.slice(0,idx+1).join('/');}else{curRemote=(curSource==='router_ftp'?'router_ftp:/':clientRemoteName+':/')+parts.slice(1,idx+1).join('/')+'/';}ls();};bar.appendChild(crumb);}}
+async function ls(){let url="/api/ls?";if(curSource==='local')url+="local="+encodeURIComponent(curLocal);else url+="remote="+encodeURIComponent(curRemote);document.getElementById('status').innerText='Loading...';buildBreadcrumbs();try{const res=await fetch(url);if(!res.ok){const err=await res.json();document.getElementById('status').innerText='Error: '+(err.error||res.status);return;}const files=await res.json();currentFiles=files;filteredFiles=[];document.getElementById('status').innerText=files.length+" items | "+countTypes(files);render(files);}catch(e){document.getElementById('status').innerText='Failed: '+e;}}
+function countTypes(files){let c={img:0,vid:0,aud:0,doc:0};files.forEach(f=>{if(f.IsDir)return;const t=getFileType(f.Name).cat;if(t==='image')c.img++;else if(t==='video')c.vid++;else if(t==='audio')c.aud++;else if(t==='doc')c.doc++;});return `${c.img} imgs, ${c.vid} vids`;}
+function getFileType(name){name=name.toLowerCase();const ext=name.split('.').pop();const map={'jpg':{cat:'image',icon:'JPG',cls:'i-image'},'jpeg':{cat:'image',icon:'JPG',cls:'i-image'},'png':{cat:'image',icon:'PNG',cls:'i-image'},'gif':{cat:'image',icon:'GIF',cls:'i-image'},'webp':{cat:'image',icon:'WEBP',cls:'i-image'},'svg':{cat:'image',icon:'SVG',cls:'i-image'},'bmp':{cat:'image',icon:'BMP',cls:'i-image'},'mp4':{cat:'video',icon:'MP4',cls:'i-video'},'mkv':{cat:'video',icon:'MKV',cls:'i-video'},'avi':{cat:'video',icon:'AVI',cls:'i-video'},'mov':{cat:'video',icon:'MOV',cls:'i-video'},'webm':{cat:'video',icon:'WEBM',cls:'i-video'},'mp3':{cat:'audio',icon:'MP3',cls:'i-audio'},'wav':{cat:'audio',icon:'WAV',cls:'i-audio'},'flac':{cat:'audio',icon:'FLAC',cls:'i-audio'},'m4a':{cat:'audio',icon:'M4A',cls:'i-audio'},'pdf':{cat:'doc',icon:'PDF',cls:'i-pdf'},'doc':{cat:'doc',icon:'DOC',cls:'i-doc'},'docx':{cat:'doc',icon:'DOCX',cls:'i-doc'},'xls':{cat:'doc',icon:'XLS',cls:'i-sheet'},'xlsx':{cat:'doc',icon:'XLSX',cls:'i-sheet'},'zip':{cat:'archive',icon:'ZIP',cls:'i-zip'},'rar':{cat:'archive',icon:'RAR',cls:'i-zip'},'apk':{cat:'archive',icon:'APK',cls:'i-apk'},'exe':{cat:'exe',icon:'EXE',cls:'i-exe'},'txt':{cat:'text',icon:'TXT',cls:'i-txt'}};if(map[ext])return map[ext];return{cat:'file',icon:ext?ext.toUpperCase().substring(0,4):'FILE',cls:'i-file'};}
+function render(files){const grid=document.getElementById('fileGrid');const list=document.getElementById('fileList');grid.innerHTML='';list.innerHTML='';files.sort((a,b)=>(b.IsDir-a.IsDir)||a.Name.localeCompare(b.Name));files.forEach(f=>{const isDir=f.IsDir;const ft=isDir?{icon:'DIR',cls:'i-folder',cat:'folder'}:getFileType(f.Name);const div=document.createElement('div');div.className='item'+(selected.has(f.Name)?' selected':'');div.innerHTML=`<div class="iconWrap ${ft.cls}">${isDir?'DIR':ft.icon}</div><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.Name}</div><div style="font-size:11px;color:#5f6368;margin-top:4px">${isDir?'Folder':ft.cat+' • '+formatSize(f.Size)}</div>`;div.onclick=()=>{if(isDir)openDir(f);else{selectFile(f);openItem();}};div.oncontextmenu=(e)=>{e.preventDefault();selectFile(f);showCtx(e,f);};grid.appendChild(div);const row=document.createElement('div');row.className='row';row.innerHTML=`<div class="iconWrap ${ft.cls}" style="width:32px;height:32px;margin:0;font-size:10px">${isDir?'DIR':ft.icon}</div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px">${f.Name}</span><span style="font-size:12px;color:#5f6368">${isDir?'Folder':ft.cat+' • '+formatSize(f.Size)}</span>`;row.onclick=()=>{if(isDir)openDir(f);else{selectFile(f);openItem();}};row.oncontextmenu=(e)=>{e.preventDefault();selectFile(f);showCtx(e,f);};list.appendChild(row);});}
+function selectFile(f){ctxTarget=f;const ft=f.IsDir?{icon:'DIR',cls:'i-folder',cat:'folder'}:getFileType(f.Name);document.getElementById('filePreview').innerHTML=`<div class="iconWrap ${ft.cls}" style="width:80px;height:80px;font-size:18px">${ft.icon}</div>`;document.getElementById('fileDetails').innerHTML=`<div class="propRow"><b>Name</b><span style="text-align:right;overflow:hidden;text-overflow:ellipsis">${f.Name}</span></div><div class="propRow"><b>Type</b><span>${ft.cat.toUpperCase()} - ${ft.icon}</span></div><div class="propRow"><b>Size</b><span>${f.IsDir?'-':form
